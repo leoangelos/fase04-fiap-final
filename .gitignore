@@ -1,0 +1,54 @@
+# ---- Ambiente Python ----
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+.claude
+
+# ---- Modelos e pesos baixados em runtime ----
+*.pt
+*.onnx
+
+# ---- Dados baixados (PhysioNet) e saídas geradas ----
+data/physionet/
+outputs/
+
+# ---- Amostras de mídia ----
+# Vídeos são grandes e reproduzíveis via scripts/download_data.py → ignorados.
+data/samples/video/*.mp4
+data/samples/video/*.avi
+# Exceção: vídeo de queda (gerado por IA, NÃO regenerável por script; 2.4 MB)
+!data/samples/video/patient_fall_demo.mp4
+# Áudios de consulta (pt-BR) SÃO versionados: pequenos e não regeneráveis fora do
+# macOS (dependem do TTS `say`). Apenas temporários de geração são ignorados.
+data/samples/audio/*.aiff
+data/samples/audio/_*.wav
+!data/samples/**/.gitkeep
+
+# ---- Editores / IDEs ----
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---- Sistema operacional ----
+# macOS
+.DS_Store
+.AppleDouble
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk

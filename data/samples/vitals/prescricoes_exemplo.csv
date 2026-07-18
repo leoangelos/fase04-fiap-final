@@ -1,0 +1,12 @@
+day,drug,dose_mg,frequency_per_day
+1,warfarina,5,1
+1,enalapril,10,2
+2,warfarina,5,1
+2,enalapril,10,2
+3,warfarina,5,1
+3,enalapril,10,2
+3,aspirina,100,1
+4,warfarina,15,1
+4,enalapril,10,2
+5,enalapril,10,2
+5,espironolactona,25,1
