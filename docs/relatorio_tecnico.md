@@ -4,7 +4,7 @@
 
 **Grupo 31** — Leonardo Angelos · Vagner Lopes · Lucas Oliveira · Vinícius Silva
 
-- 🎬 **Vídeo de demonstração (YouTube):** https://www.youtube.com/watch?v=34p9tNgTX3g
+- 🎬 **Vídeo de demonstração (YouTube):** https://youtu.be/OAvhCLX0R10
 - 💻 **Repositório (GitHub):** https://github.com/leoangelos/fase04-fiap-final
 
 ---

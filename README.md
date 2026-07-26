@@ -408,7 +408,7 @@ Toda rota exige um profissional autenticado (JWT do Supabase Auth). O Swagger é
 
 - 💻 **Código-fonte:** este repositório.
 - 📄 **Relatório técnico:** [`docs/relatorio_tecnico.md`](docs/relatorio_tecnico.md)
-- 🎬 **Vídeo de demonstração (≤15 min):** _inserir aqui o link do YouTube/Vimeo após a gravação_ — roteiro pronto em [`docs/roteiro_video.md`](docs/roteiro_video.md).
+- 🎬 **Vídeo de demonstração (≤15 min):** https://youtu.be/OAvhCLX0R10 — roteiro em [`docs/roteiro_video.md`](docs/roteiro_video.md).
 
 ---
 
