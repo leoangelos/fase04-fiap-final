@@ -35,6 +35,7 @@ data/samples/video/*.avi
 data/samples/audio/*.aiff
 data/samples/audio/_*.wav
 !data/samples/**/.gitkeep
+*.pdf
 
 # ---- Editores / IDEs ----
 .vscode/

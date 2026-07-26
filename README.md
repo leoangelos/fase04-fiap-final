@@ -50,7 +50,7 @@ flowchart TB
 
     subgraph APP[Aplicação]
         DASH[📊 Dashboard Streamlit<br/>seções 🏥 Hospital e 🔬 Demonstração]
-        API[⚙️ API FastAPI<br/>JWT Supabase Auth + auditoria LGPD]
+        API[⚙️ API FastAPI<br/>JWT Supabase Auth + RLS por papel]
         WK[🤖 Workers assíncronos<br/>áudio · vídeo · texto]
     end
 
@@ -165,7 +165,7 @@ fiap-fase04/
 │   ├── alerts/                   # gerenciador de alertas (INFO/WARNING/CRITICAL)
 │   └── reporting/                # relatório consolidado automático
 ├── src/hospital_ai/              # camada hospitalar (Supabase)
-│   ├── main.py                   # API FastAPI (13 endpoints, JWT + auditoria)
+│   ├── main.py                   # API FastAPI (13 endpoints, JWT Supabase Auth)
 │   ├── api/                      # pacientes, mídia (signed URLs), vitais, alertas
 │   ├── services/                 # NEWS2, z-score, fusão tardia, interações, fila
 │   └── workers/                  # fila hospital.jobs → análises da multimodal_monitor
@@ -357,7 +357,7 @@ Além do pipeline de análise, o projeto inclui uma camada de **gestão hospital
 
 - **RLS** em todas as tabelas + **GRANTs mínimos** (anon não lê nada; fila `jobs` e RPCs só via service key);
 - buckets **privados** com download por signed URL de 5 min e **checksum SHA-256** (integridade);
-- **auditoria de acesso** em `hospital.audit_logs` (quem viu/enviou/baixou o quê);
+- **exclusão lógica** de pacientes/profissionais (prontuário preservado, sem apagar dados clínicos);
 - login demo criado pelo seed: `medico.demo@fiap-fase4.local` / `Fiap@Fase4-demo`.
 
 ---

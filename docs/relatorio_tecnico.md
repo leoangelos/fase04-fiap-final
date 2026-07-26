@@ -2,6 +2,11 @@
 
 **FIAP Pós-Tech IA para Devs (8IADT) — Tech Challenge Fase 4**
 
+**Grupo 31** — Leonardo Angelos · Vagner Lopes · Lucas Oliveira · Vinícius Silva
+
+- 🎬 **Vídeo de demonstração (YouTube):** https://www.youtube.com/watch?v=34p9tNgTX3g
+- 💻 **Repositório (GitHub):** https://github.com/leoangelos/fase04-fiap-final
+
 ---
 
 ## 1. Contexto e objetivo
@@ -118,7 +123,7 @@ Para aproximar a solução de um sistema hospitalar real, o projeto inclui uma c
 | Componente | Implementação |
 |---|---|
 | Modelo de dados | Schema isolado `hospital` (10 tabelas): pacientes, encontros, mídias, análises, sinais vitais, prescrições, alertas, auditoria e fila de jobs — todas com **RLS** e grants mínimos por papel |
-| Upload multimodal | Duas etapas: registro *pending* + **signed upload URL** (o binário vai direto ao Storage), confirmação com **SHA-256** (cadeia de custódia) e enfileiramento da análise |
+| Upload multimodal | Duas etapas: registro *pending* + **signed upload URL** (o binário vai direto ao Storage), confirmação com **SHA-256** (integridade do arquivo) e enfileiramento da análise |
 | Processamento | Fila `hospital.jobs` (padrão `FOR UPDATE SKIP LOCKED`, *retry* com backoff) consumida por workers de áudio/vídeo/texto que rodam o mesmo pipeline do capítulo 3 e gravam `analysis_results` por paciente |
 | Anomalias em vitais | **Duas camadas comparáveis**: (1) **NEWS2** (Royal College of Physicians), escore determinístico usado em hospitais reais; (2) **z-score em janela deslizante** (Redis/Upstash ou memória) — baseline estatístico do **próprio paciente**, que captura desvios individuais antes dos limites populacionais |
 | Fusão multimodal | *Late fusion* ponderada com **decaimento temporal** (meia-vida 24 h) dos `risk_score` de vitais, áudio, vídeo, NLP e prescrições → `patient_risk_score` 0–1; ≥ 0,7 gera alerta `fusion` com **deduplicação** (não repete enquanto houver alerta de fusão sem ciência) |
@@ -126,7 +131,7 @@ Para aproximar a solução de um sistema hospitalar real, o projeto inclui uma c
 | Baseline individual | O histórico de sessões de vídeo do paciente vira insumo do modelo: métricas da sessão atual são comparadas às anteriores (`baseline_deviations`) |
 | Prescrições | Checagem de **interação medicamentosa imediata** ao prescrever (base única compartilhada com o pipeline de demonstração) |
 | Interface | Dashboard em duas seções: **🏥 Hospital** (Visão Geral com censo/risco de todos os pacientes, Pacientes com upload e resultados em **linguagem clínica pt-BR**, Profissionais com CRUD e criação de login) e **🔬 Análises de demonstração** (motores isolados com dados de exemplo) |
-| LGPD | RLS + grants mínimos (anon sem acesso a dados), buckets privados com signed URL de 5 min, auditoria de acesso (`audit_logs`), service key restrita ao backend, **exclusão lógica** de pacientes/profissionais (prontuário e trilha de auditoria preservados) |
+| LGPD | RLS + grants mínimos (anon sem acesso a dados), buckets privados com signed URL de 5 min, service key restrita ao backend, **exclusão lógica** de pacientes/profissionais (prontuário preservado, sem apagar dados clínicos) |
 
 Cenário de demonstração (`scripts/seed_hospital.py`): paciente internado com **deterioração progressiva** tipo sepse — NEWS2 evolui 2 → 6 → 8 → 12 → 14 enquanto o z-score da FC dispara contra a baseline individual (z=15 na primeira leitura anômala), culminando em alerta de fusão com risco 100%.
 
@@ -147,7 +152,7 @@ Cenário de demonstração (`scripts/seed_hospital.py`): paciente internado com 
 - **Nenhum dado real de paciente** é utilizado: sinais vitais são públicos (PhysioNet) ou sintéticos; áudios e vídeos são simulados/de amostra com licença aberta.
 - As chaves (Azure, Supabase, Redis) ficam em `.env` (fora do versionamento).
 - O sistema é de **apoio à decisão** e **não substitui avaliação médica**; toda detecção é uma triagem para revisão humana.
-- **LGPD implementada em código na camada hospitalar** (cap. 6): controle de acesso por papel (RLS + grants; `anon` não lê dados clínicos), arquivos em buckets privados com URLs assinadas de curta duração e checksum SHA-256, **auditoria de quem viu/enviou/baixou o quê** e exclusão lógica que preserva o prontuário e a trilha de auditoria.
+- **LGPD implementada em código na camada hospitalar** (cap. 6): controle de acesso por papel (RLS + grants; `anon` não lê dados clínicos), arquivos em buckets privados com URLs assinadas de curta duração e checksum SHA-256, e **exclusão lógica** de pacientes/profissionais que preserva o prontuário (registros clínicos não são apagados fisicamente).
 - Em uso real, seriam ainda necessários consentimento informado, minimização/anonimização de dados e políticas de retenção — em conformidade plena com a **LGPD**.
 
 ---
@@ -167,4 +172,4 @@ migrations versionadas em `db/migrations/` (0001→0005) recriam schema, RLS,
 fila de jobs, buckets, grants e Realtime por SQL, sem passos manuais no
 dashboard; o `scripts/seed_hospital.py` popula o cenário de demonstração.
 
-Stack fixada em `pyproject.toml` (Python 3.12 via `uv`). Detalhes de instalação multiplataforma no [README](../README.md).
+Stack fixada em `pyproject.toml` (Python 3.12 via `uv`). Detalhes de instalação multiplataforma no [README](https://github.com/leoangelos/fase04-fiap-final#readme).
