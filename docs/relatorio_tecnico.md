@@ -120,6 +120,48 @@ Ambos no **tier gratuito F0**. A camada Azure está isolada atrás de `config.py
 
 Para aproximar a solução de um sistema hospitalar real, o projeto inclui uma camada de gestão construída sobre **Supabase** (Postgres + Storage + Auth + Realtime), com API **FastAPI** e workers assíncronos que **reutilizam a biblioteca `multimodal_monitor`** como motor de análise.
 
+O diagrama abaixo mostra a **evolução** do pipeline de demonstração (cap. 2–4) para um sistema hospitalar completo: o mesmo motor de análise passa a ser consumido por workers assíncronos alimentados por uma fila, com persistência por paciente, tempo real e controle de acesso no Supabase.
+
+```mermaid
+flowchart TB
+    MED[🧑‍⚕️ Médico / equipe]
+
+    subgraph APP[Aplicação]
+        DASH[📊 Dashboard Streamlit<br/>seções Hospital e Demonstração]
+        API[⚙️ API FastAPI · 13 endpoints<br/>JWT Supabase Auth + RLS por papel]
+        WK[🤖 Workers assíncronos<br/>áudio · vídeo · texto]
+    end
+
+    subgraph SUPA[Supabase]
+        PG[(Postgres · schema hospital<br/>RLS + grants por papel)]
+        ST[(Storage · buckets privados<br/>signed URLs + SHA-256)]
+        RT[[Realtime]]
+    end
+
+    subgraph MOTOR[Motor de análise]
+        ENG[🧠 multimodal_monitor<br/>YOLOv8 pose/objetos · Praat/librosa · detectores]
+        AZ[☁️ Azure Speech to Text<br/>+ Text Analytics]
+    end
+
+    MED --> DASH
+    MED --> API
+    DASH -->|pacientes · vitais · prescrições · ciência| PG
+    API -->|REST: /patients /media /vitals /alerts| PG
+    DASH -->|upload por paciente| ST
+    API -->|signed upload URL| ST
+    PG -->|fila hospital.jobs<br/>SKIP LOCKED + retry| WK
+    ST -->|mídia| WK
+    WK --> ENG
+    ENG -->|transcrição + análise de texto| AZ
+    WK -->|analysis_results + alerts| PG
+    DASH -->|leitura de vitais ao vivo| N2[📈 NEWS2 + z-score individual<br/>janela deslizante no Redis]
+    N2 --> PG
+    PG --> FUS[🔀 Fusão tardia · decaimento 24 h<br/>patient_risk_score 0–1]
+    FUS -->|alerta fusion| PG
+    RT -->|alertas ao vivo| DASH
+    PG --- RT
+```
+
 | Componente | Implementação |
 |---|---|
 | Modelo de dados | Schema isolado `hospital` (10 tabelas): pacientes, encontros, mídias, análises, sinais vitais, prescrições, alertas, auditoria e fila de jobs — todas com **RLS** e grants mínimos por papel |
@@ -132,6 +174,26 @@ Para aproximar a solução de um sistema hospitalar real, o projeto inclui uma c
 | Prescrições | Checagem de **interação medicamentosa imediata** ao prescrever (base única compartilhada com o pipeline de demonstração) |
 | Interface | Dashboard em duas seções: **🏥 Hospital** (Visão Geral com censo/risco de todos os pacientes, Pacientes com upload e resultados em **linguagem clínica pt-BR**, Profissionais com CRUD e criação de login) e **🔬 Análises de demonstração** (motores isolados com dados de exemplo) |
 | LGPD | RLS + grants mínimos (anon sem acesso a dados), buckets privados com signed URL de 5 min, service key restrita ao backend, **exclusão lógica** de pacientes/profissionais (prontuário preservado, sem apagar dados clínicos) |
+
+**API REST (FastAPI — 13 endpoints, JWT do Supabase Auth):** a mesma lógica exposta pelo dashboard também é acessível por API, com Swagger interativo em **`http://localhost:8000/docs`** (servido pelo `uvicorn`, em processo/porta separados do dashboard Streamlit, que roda em `8501`). Toda rota exige um profissional autenticado.
+
+| Método | Rota | Função |
+|---|---|---|
+| `POST` | `/patients` | Cadastra paciente |
+| `GET` | `/patients` | Lista pacientes (busca por nome via `?q=`) |
+| `GET` | `/patients/{id}` | Detalhe do paciente |
+| `GET` | `/patients/{id}/timeline` | Histórico unificado: encontros, mídias, análises, vitais e alertas |
+| `GET` | `/patients/{id}/risk` | Índice de risco multimodal (fusão tardia com decaimento) |
+| `POST` | `/patients/{id}/vitals` | Registra sinais vitais → **NEWS2 + z-score + fusão** com alertas automáticos |
+| `POST` | `/patients/{id}/media/upload-url` | Registro *pending* + **signed upload URL** (upload direto ao Storage) |
+| `POST` | `/media/{id}/confirm` | Confirma upload (**SHA-256**) e **enfileira** a análise |
+| `GET` | `/media/{id}/download-url` | **Signed download URL** (validade de 5 min) |
+| `POST` | `/encounters` | Abre encontro clínico (consulta, cirurgia, fisioterapia…) |
+| `POST` | `/prescriptions` | Prescreve medicação e **checa interação** contra as ativas na hora |
+| `GET` | `/alerts` | Lista alertas **em aberto** (não confirmados) |
+| `POST` | `/alerts/{id}/ack` | Dá **ciência** no alerta (acknowledge da equipe) |
+
+> Utilitários fora da contagem: `GET /health` (liveness) e `GET /` (redireciona para `/docs`). Os workers da fila `hospital.jobs` rodam fora da API, por processo próprio (`hospital_ai.workers.runner`).
 
 Cenário de demonstração (`scripts/seed_hospital.py`): paciente internado com **deterioração progressiva** tipo sepse — NEWS2 evolui 2 → 6 → 8 → 12 → 14 enquanto o z-score da FC dispara contra a baseline individual (z=15 na primeira leitura anômala), culminando em alerta de fusão com risco 100%.
 

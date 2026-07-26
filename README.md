@@ -343,7 +343,7 @@ Além do pipeline de análise, o projeto inclui uma camada de **gestão hospital
 3. Rode a API e o worker (terminais separados):
 
    ```bash
-   uv run uvicorn hospital_ai.main:app --reload --port 8000   # docs em /docs
+   uv run uvicorn hospital_ai.main:app --reload --port 8000   # Swagger em http://localhost:8000/docs
    uv run python -m hospital_ai.workers.runner                # processa a fila
    ```
 
@@ -352,6 +352,28 @@ Além do pipeline de análise, o projeto inclui uma camada de **gestão hospital
 ### Fluxo de upload (médico → paciente)
 
 `POST /patients/{id}/media/upload-url` (registro *pending* + signed URL) → envio direto ao Storage → `POST /media/{id}/confirm` (SHA-256) → job na fila → worker analisa com a `multimodal_monitor` → `analysis_results` + `alerts` → `GET /patients/{id}/timeline`.
+
+### Endpoints da API REST (FastAPI — 13, Swagger em `http://localhost:8000/docs`)
+
+Toda rota exige um profissional autenticado (JWT do Supabase Auth). O Swagger é servido pelo `uvicorn` na porta **8000** — separado do dashboard Streamlit (porta **8501**, que não expõe `/docs`).
+
+| Método | Rota | Função |
+|---|---|---|
+| `POST` | `/patients` | Cadastra paciente |
+| `GET` | `/patients` | Lista pacientes (busca por nome via `?q=`) |
+| `GET` | `/patients/{id}` | Detalhe do paciente |
+| `GET` | `/patients/{id}/timeline` | Histórico unificado: encontros, mídias, análises, vitais e alertas |
+| `GET` | `/patients/{id}/risk` | Índice de risco multimodal (fusão tardia com decaimento) |
+| `POST` | `/patients/{id}/vitals` | Registra sinais vitais → NEWS2 + z-score + fusão (alertas automáticos) |
+| `POST` | `/patients/{id}/media/upload-url` | Registro *pending* + signed upload URL (upload direto ao Storage) |
+| `POST` | `/media/{id}/confirm` | Confirma upload (SHA-256) e enfileira a análise |
+| `GET` | `/media/{id}/download-url` | Signed download URL (validade de 5 min) |
+| `POST` | `/encounters` | Abre encontro clínico (consulta, cirurgia, fisioterapia…) |
+| `POST` | `/prescriptions` | Prescreve medicação e checa interação contra as ativas na hora |
+| `GET` | `/alerts` | Lista alertas em aberto (não confirmados) |
+| `POST` | `/alerts/{id}/ack` | Dá ciência no alerta (acknowledge da equipe) |
+
+> Utilitários fora da contagem: `GET /health` e `GET /` (redireciona para `/docs`). Os workers da fila rodam fora da API (`python -m hospital_ai.workers.runner`).
 
 ### Segurança / LGPD
 
